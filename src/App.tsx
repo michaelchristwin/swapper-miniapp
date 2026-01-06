@@ -220,24 +220,23 @@ const NFTSwapDapp = () => {
               </div>
 
               {/* Swap Button */}
-              {selectedPeerNFT &&
-                selectedMyNFT &&
-                (isConnected ? (
-                  <button
-                    onClick={handleSwap}
-                    className="w-full py-4 rounded-xl font-bold text-lg transition-all bg-linear-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white shadow-lg shadow-purple-500/50"
-                  >
-                    Swap NFTs
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => connect.mutate({ connector: connectors[0] })}
-                    className="w-full py-4 rounded-xl font-bold text-lg transition-all bg-linear-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white shadow-lg shadow-purple-500/50"
-                  >
-                    Connect Wallet
-                  </button>
-                ))}
+              {isConnected && selectedPeerNFT && selectedMyNFT && (
+                <button
+                  onClick={handleSwap}
+                  className="w-full py-4 rounded-xl font-bold text-lg transition-all bg-linear-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white shadow-lg shadow-purple-500/50"
+                >
+                  Swap NFTs
+                </button>
+              )}
+              {!isConnected && (
+                <button
+                  type="button"
+                  onClick={() => connect.mutate({ connector: connectors[0] })}
+                  className="w-full py-4 rounded-xl font-bold text-lg transition-all bg-linear-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white shadow-lg shadow-purple-500/50"
+                >
+                  Connect Wallet
+                </button>
+              )}
             </div>
           </div>
         )}
