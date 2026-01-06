@@ -1,1 +1,22 @@
-{}
+{
+  "frame": {
+    "name": "Swap dgen1 NFT",
+    "version": "1",
+    "iconUrl": "https://swapper-miniapp.vercel.app/swap.png",
+    "homeUrl": "https://swapper-miniapp.vercel.app",
+    "imageUrl": "https://swapper-miniapp.vercel.app/swap.png",
+    "buttonTitle": "Swap dgen1 NFT",
+    "splashImageUrl": "https://swapper-miniapp.vercel.app/swap.png",
+    "splashBackgroundColor": "#f5f0ec",
+    "webhookUrl": "https://swapper-miniapp.vercel.app/api/webhook",
+    "subtitle": "swap your dgen1 NFTs",
+    "description": "Swap your dgen1 NFTs with your peers",
+    "primaryCategory": "utility",
+    "tags": ["dgen1", "p2p", "nft", "swap"]
+  },
+  "accountAssociation": {
+    "header": "eyJmaWQiOjc2NTM3MywidHlwZSI6ImN1c3RvZHkiLCJrZXkiOiIweEU5MkNiODRFODA5Mjc1Mzc2N0Y0YjBCYjkzMWM5ZDNlY0UxY2Y4ZjEifQ",
+    "payload": "eyJkb21haW4iOiJzd2FwcGVyLW1pbmlhcHAudmVyY2VsLmFwcCJ9",
+    "signature": "SX8j1+ArfLhQl/aJVdlCDR0COtcfQdYLm1KRpbYsIT0SOEzn5lC72/nBgu1kROIE5rGlUN8Uh8qugHj/lKGLxBw="
+  }
+}
