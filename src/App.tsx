@@ -2,6 +2,22 @@ import { sdk } from "@farcaster/miniapp-sdk";
 import { useEffect } from "react";
 import { useState } from "react";
 import { ArrowDownUp, Wallet, ArrowLeft } from "lucide-react";
+import {
+  useConnect,
+  useConnection,
+  useConnectors,
+  useSendTransaction,
+} from "wagmi";
+import { encodeFunctionData, parseUnits } from "viem";
+import { swapperContract } from "./config/contracts";
+import useSWR from "swr";
+import { getUserBucket } from "./util";
+
+type Nft = {
+  name: string;
+  image: string;
+  id: number;
+};
 
 function App() {
   useEffect(() => {
@@ -10,112 +26,21 @@ function App() {
   return <NFTSwapDapp />;
 }
 
-export default App;
-
 const NFTSwapDapp = () => {
   const [view, setView] = useState("gallery");
   const [selectedPeerNFT, setSelectedPeerNFT] = useState<Nft | null>(null);
   const [selectedMyNFT, setSelectedMyNFT] = useState<Nft | null>(null);
+  const { isConnected, address } = useConnection();
+  const connect = useConnect();
+  const connectors = useConnectors();
+  const { mutate } = useSendTransaction();
 
-  // Mock NFT data for peer's gallery
-  const peerNFTs = [
-    {
-      id: 1,
-      name: "Cosmic Ape #4521",
-      image: "🦍",
-      rarity: "Legendary",
-      collection: "Cosmic Apes",
-    },
-    {
-      id: 2,
-      name: "Pixel Punk #892",
-      image: "👾",
-      rarity: "Rare",
-      collection: "Pixel Punks",
-    },
-    {
-      id: 3,
-      name: "Abstract Soul #156",
-      image: "🎨",
-      rarity: "Epic",
-      collection: "Abstract Souls",
-    },
-    {
-      id: 4,
-      name: "Cyber Cat #3301",
-      image: "🐱",
-      rarity: "Common",
-      collection: "Cyber Cats",
-    },
-    {
-      id: 5,
-      name: "Moon Walker #777",
-      image: "🚀",
-      rarity: "Legendary",
-      collection: "Moon Walkers",
-    },
-    {
-      id: 6,
-      name: "Crystal Dragon #99",
-      image: "🐉",
-      rarity: "Mythic",
-      collection: "Crystal Dragons",
-    },
-  ];
-
-  // Mock NFT data for user's collection
-  const myNFTs = [
-    {
-      id: 7,
-      name: "Fire Phoenix #234",
-      image: "🔥",
-      rarity: "Epic",
-      collection: "Fire Phoenix",
-    },
-    {
-      id: 8,
-      name: "Ocean Spirit #567",
-      image: "🌊",
-      rarity: "Rare",
-      collection: "Ocean Spirits",
-    },
-    {
-      id: 9,
-      name: "Shadow Ninja #890",
-      image: "⚔️",
-      rarity: "Legendary",
-      collection: "Shadow Ninjas",
-    },
-    {
-      id: 10,
-      name: "Star Guardian #445",
-      image: "⭐",
-      rarity: "Epic",
-      collection: "Star Guardians",
-    },
-  ];
-
-  type Rarity = "Common" | "Rare" | "Epic" | "Legendary" | "Mythic";
-
-  const getRarityColor = (rarity: Rarity): string => {
-    const colors: Record<Rarity, string> = {
-      Common: "text-gray-400",
-      Rare: "text-blue-400",
-      Epic: "text-purple-400",
-      Legendary: "text-yellow-400",
-      Mythic: "text-pink-400",
-    };
-
-    return colors[rarity];
-  };
-
-  type Nft = {
-    id: number;
-    name: string;
-    image: string;
-    rarity: Rarity;
-    collection: string;
-  };
+  const fetcher = (url: string) => fetch(url).then((res) => res.json());
+  const { data: c1 } = useSWR("/api/dune-proxy", fetcher);
+  const { data: c2 } = useSWR("c2", async () => {
+    const d = await getUserBucket(address as `0x${string}`);
+    return d;
+  });
 
   const handlePeerNFTClick = (nft: Nft) => {
     setSelectedPeerNFT(nft);
@@ -123,9 +48,17 @@ const NFTSwapDapp = () => {
   };
 
   const handleSwap = () => {
-    if (selectedPeerNFT && selectedMyNFT) {
-      alert(`Swapping ${selectedMyNFT.name} for ${selectedPeerNFT.name}!`);
-    }
+    mutate({
+      to: swapperContract.address,
+      data: encodeFunctionData({
+        abi: swapperContract.abi,
+        functionName: "swap",
+        args: [
+          parseUnits(selectedPeerNFT?.id.toString() as string, 9),
+          parseUnits(selectedMyNFT?.id.toString() as string, 9),
+        ],
+      }),
+    });
   };
 
   const NFTCard = ({
@@ -149,10 +82,6 @@ const NFTSwapDapp = () => {
         {nft.image}
       </div>
       <h3 className="text-white font-semibold text-sm mb-1">{nft.name}</h3>
-      <p className="text-gray-400 text-xs mb-2">{nft.collection}</p>
-      <span className={`text-xs font-medium ${getRarityColor(nft.rarity)}`}>
-        {nft.rarity}
-      </span>
     </div>
   );
 
@@ -185,15 +114,17 @@ const NFTSwapDapp = () => {
               <h2 className="text-2xl font-bold text-white mb-6">
                 Peer's Collection
               </h2>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {peerNFTs.map((nft) => (
-                  <NFTCard
-                    key={nft.id}
-                    nft={nft as any}
-                    onClick={handlePeerNFTClick}
-                  />
-                ))}
-              </div>
+              {c1 && (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {[...c1].map((nft, index) => (
+                    <NFTCard
+                      key={index}
+                      nft={{ name: "shitcoin1", image: "🔥", id: nft.token_id }}
+                      onClick={handlePeerNFTClick}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -227,14 +158,6 @@ const NFTSwapDapp = () => {
                       <h3 className="text-white font-semibold text-lg">
                         {selectedPeerNFT?.name}
                       </h3>
-                      <p className="text-gray-400 text-sm">
-                        {selectedPeerNFT?.collection}
-                      </p>
-                      <span
-                        className={`text-sm font-medium ${getRarityColor(selectedPeerNFT?.rarity!)}`}
-                      >
-                        {selectedPeerNFT?.rarity}
-                      </span>
                     </div>
                   </div>
                 </div>
@@ -262,14 +185,6 @@ const NFTSwapDapp = () => {
                         <h3 className="text-white font-semibold text-lg">
                           {selectedMyNFT.name}
                         </h3>
-                        <p className="text-gray-400 text-sm">
-                          {selectedMyNFT.collection}
-                        </p>
-                        <span
-                          className={`text-sm font-medium ${getRarityColor(selectedMyNFT.rarity)}`}
-                        >
-                          {selectedMyNFT.rarity}
-                        </span>
                       </div>
                       <button
                         onClick={() => setSelectedMyNFT(null)}
@@ -287,12 +202,16 @@ const NFTSwapDapp = () => {
                   </div>
                 )}
 
-                {!selectedMyNFT && (
+                {!selectedMyNFT && c2 && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {myNFTs.map((nft) => (
+                    {c2.map((nft, index) => (
                       <NFTCard
-                        key={nft.id}
-                        nft={nft as any}
+                        key={index}
+                        nft={{
+                          name: "shitcoin1",
+                          image: "🔥",
+                          id: nft.token_id,
+                        }}
                         onClick={setSelectedMyNFT}
                       />
                     ))}
@@ -301,19 +220,24 @@ const NFTSwapDapp = () => {
               </div>
 
               {/* Swap Button */}
-              {selectedPeerNFT && selectedMyNFT && (
-                <button
-                  onClick={handleSwap}
-                  disabled={!selectedMyNFT}
-                  className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
-                    selectedMyNFT
-                      ? "bg-linear-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white shadow-lg shadow-purple-500/50"
-                      : "bg-slate-700 text-gray-500 cursor-not-allowed"
-                  }`}
-                >
-                  {selectedMyNFT ? "Swap NFTs" : "Select an NFT to Swap"}
-                </button>
-              )}
+              {selectedPeerNFT &&
+                selectedMyNFT &&
+                (isConnected ? (
+                  <button
+                    onClick={handleSwap}
+                    className="w-full py-4 rounded-xl font-bold text-lg transition-all bg-linear-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white shadow-lg shadow-purple-500/50"
+                  >
+                    Swap NFTs
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => connect.mutate({ connector: connectors[0] })}
+                    className="w-full py-4 rounded-xl font-bold text-lg transition-all bg-linear-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white shadow-lg shadow-purple-500/50"
+                  >
+                    Connect Wallet
+                  </button>
+                ))}
             </div>
           </div>
         )}
@@ -337,3 +261,5 @@ const NFTSwapDapp = () => {
     </div>
   );
 };
+
+export default App;
