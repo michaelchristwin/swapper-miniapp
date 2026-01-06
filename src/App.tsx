@@ -301,17 +301,19 @@ const NFTSwapDapp = () => {
               </div>
 
               {/* Swap Button */}
-              <button
-                onClick={handleSwap}
-                disabled={!selectedMyNFT}
-                className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
-                  selectedMyNFT
-                    ? "bg-linear-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white shadow-lg shadow-purple-500/50"
-                    : "bg-slate-700 text-gray-500 cursor-not-allowed"
-                }`}
-              >
-                {selectedMyNFT ? "Swap NFTs" : "Select an NFT to Swap"}
-              </button>
+              {selectedPeerNFT && selectedMyNFT && (
+                <button
+                  onClick={handleSwap}
+                  disabled={!selectedMyNFT}
+                  className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
+                    selectedMyNFT
+                      ? "bg-linear-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white shadow-lg shadow-purple-500/50"
+                      : "bg-slate-700 text-gray-500 cursor-not-allowed"
+                  }`}
+                >
+                  {selectedMyNFT ? "Swap NFTs" : "Select an NFT to Swap"}
+                </button>
+              )}
             </div>
           </div>
         )}
