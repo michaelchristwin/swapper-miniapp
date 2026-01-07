@@ -1,7 +1,7 @@
 import { sdk } from "@farcaster/miniapp-sdk";
 import { useEffect } from "react";
 import { useState } from "react";
-import { ArrowDownUp, Wallet, ArrowLeft } from "lucide-react";
+import { ArrowDownUp, ArrowLeft } from "lucide-react";
 import {
   useConnect,
   useConnection,
@@ -13,9 +13,27 @@ import { encodeFunctionData, parseUnits } from "viem";
 import { contractB, swapperContract } from "./config/contracts";
 import useSWR from "swr";
 
-type Nft = {
+type MetaData = {
+  description: string;
   name: string;
   image: string;
+};
+
+type Nft = {
+  name?: string;
+  image?: string;
+  id: number;
+};
+
+type Metaswr = {
+  data?: MetaData;
+  isLoading: boolean;
+  error: any;
+};
+type Metaswr2 = {
+  data?: MetaData;
+  isLoading: boolean;
+  error: any;
   id: number;
 };
 
@@ -25,7 +43,7 @@ function App() {
   }, []);
   return <NFTSwapDapp />;
 }
-
+const fetcher = (url: string) => fetch(url).then((res) => res.json());
 const NFTSwapDapp = () => {
   const [view, setView] = useState("gallery");
   const [selectedPeerNFT, setSelectedPeerNFT] = useState<Nft | null>(null);
@@ -33,10 +51,9 @@ const NFTSwapDapp = () => {
   const { isConnected, address } = useConnection();
   const connect = useConnect();
   const connectors = useConnectors();
-  const { mutate } = useSendTransaction();
+  const { mutateAsync } = useSendTransaction();
 
   const tokenIds = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-
   const contracts = tokenIds.map((id) => ({
     ...contractB,
     functionName: "ownerOf" as const,
@@ -59,16 +76,38 @@ const NFTSwapDapp = () => {
     // if status === 'failure' → token doesn't exist, just skip
   });
 
-  const fetcher = (url: string) => fetch(url).then((res) => res.json());
   const { data: c1 } = useSWR("/api/dune-proxy", fetcher);
+  const {
+    mutate: ff,
+    isValidating: gg,
+    ...rest
+  } = useSWR(["tokenUri"], async () => {
+    const result = await fetch(
+      "https://ethosdnfturi-mqixczdraq-uc.a.run.app/?t=1"
+    );
+    const data: MetaData = await result.json();
+    return data;
+  });
 
   const handlePeerNFTClick = (nft: Nft) => {
     setSelectedPeerNFT(nft);
     setView("swap");
   };
 
-  const handleSwap = () => {
-    mutate({
+  const handleSwap = async () => {
+    await mutateAsync({
+      to: contractB.address,
+      data: encodeFunctionData({
+        abi: contractB.abi,
+        functionName: "approve",
+        args: [
+          swapperContract.address,
+          parseUnits(selectedMyNFT?.id.toString() as string, 9),
+        ],
+      }),
+    });
+
+    await mutateAsync({
       to: swapperContract.address,
       data: encodeFunctionData({
         abi: swapperContract.abi,
@@ -99,9 +138,9 @@ const NFTSwapDapp = () => {
       }`}
     >
       <div className="aspect-square bg-linear-to-br from-slate-700 to-slate-800 rounded-lg flex items-center justify-center text-6xl mb-3">
-        {nft.image}
+        <TokenUriImage {...rest} />
       </div>
-      <h3 className="text-white font-semibold text-sm mb-1">{nft.name}</h3>
+      <TokenUriName {...rest} id={nft.id} />
     </div>
   );
 
@@ -116,15 +155,9 @@ const NFTSwapDapp = () => {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-white">NFT Swap</h1>
-              <p className="text-gray-400 text-sm">
-                Trade NFTs with your peers
-              </p>
+              <p className="text-gray-400 text-sm">I'll trade ya</p>
             </div>
           </div>
-          <button className="flex items-center gap-2 bg-linear-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white px-6 py-3 rounded-full font-semibold transition-all">
-            <Wallet size={20} />
-            0x7a4f...b23c
-          </button>
         </div>
 
         {/* Gallery View */}
@@ -132,14 +165,16 @@ const NFTSwapDapp = () => {
           <div className="animate-fadeIn">
             <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-6 border border-slate-700">
               <h2 className="text-2xl font-bold text-white mb-6">
-                Peer's Collection
+                Select desired NFT
               </h2>
               {c1 && (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {[...c1].map((nft, index) => (
                     <NFTCard
                       key={index}
-                      nft={{ name: "shitcoin1", image: "🔥", id: nft.token_id }}
+                      nft={{
+                        id: nft.token_id,
+                      }}
                       onClick={handlePeerNFTClick}
                     />
                   ))}
@@ -165,78 +200,78 @@ const NFTSwapDapp = () => {
 
             <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-8 border border-slate-700">
               {/* Selected Peer NFT */}
-              <div className="mb-6">
-                <label className="text-gray-400 text-sm mb-2 block">
-                  You receive
-                </label>
-                <div className="bg-slate-900 rounded-xl p-6 border-2 border-cyan-400">
-                  <div className="flex items-center gap-4">
-                    <div className="w-20 h-20 bg-linear-to-br from-slate-700 to-slate-800 rounded-lg flex items-center justify-center text-4xl">
-                      {selectedPeerNFT?.image}
+              <div className="flex justify-between w-full items-center">
+                <div className="mb-6">
+                  <label className="text-gray-400 text-sm mb-2 block">
+                    You receive
+                  </label>
+                  {selectedPeerNFT && (
+                    <div className="bg-slate-900 rounded-xl p-6 border-2 border-cyan-400">
+                      <div className="flex flex-col items-center">
+                        <div className="w-50 h-50 bg-linear-to-br from-slate-700 to-slate-800 rounded-lg flex items-center justify-center text-4xl">
+                          <TokenUriImage {...rest} />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-white font-semibold text-lg">
+                            <TokenUriName {...rest} id={selectedPeerNFT.id} />
+                          </h3>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <h3 className="text-white font-semibold text-lg">
-                        {selectedPeerNFT?.name}
-                      </h3>
-                    </div>
+                  )}
+                </div>
+
+                {/* Swap Icon */}
+                <div className="flex justify-center my-6">
+                  <div className="w-12 h-12 bg-linear-to-r from-cyan-500 to-purple-500 rounded-full flex items-center justify-center">
+                    <ArrowDownUp className="text-white" size={24} />
                   </div>
                 </div>
-              </div>
 
-              {/* Swap Icon */}
-              <div className="flex justify-center my-6">
-                <div className="w-12 h-12 bg-linear-to-r from-cyan-500 to-purple-500 rounded-full flex items-center justify-center">
-                  <ArrowDownUp className="text-white" size={24} />
-                </div>
-              </div>
-
-              {/* Select Your NFT */}
-              <div className="mb-6">
-                <label className="text-gray-400 text-sm mb-2 block">
-                  You send
-                </label>
-                {selectedMyNFT ? (
-                  <div className="bg-slate-900 rounded-xl p-6 border-2 border-purple-400 mb-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-20 h-20 bg-linear-to-br from-slate-700 to-slate-800 rounded-lg flex items-center justify-center text-4xl">
-                        {selectedMyNFT.image}
+                {/* Select Your NFT */}
+                <div className="mb-6">
+                  <label className="text-gray-400 text-sm mb-2 block">
+                    You send
+                  </label>
+                  {selectedMyNFT ? (
+                    <div className="bg-slate-900 rounded-xl p-6 border-2 border-purple-400 mb-4">
+                      <div className="block gap-4">
+                        <div className="w-50 h-50 bg-linear-to-br from-slate-700 to-slate-800 rounded-lg flex items-center justify-center text-4xl">
+                          <TokenUriImage {...rest} />
+                        </div>
+                        <div className="flex-1">
+                          <TokenUriName {...rest} id={selectedMyNFT.id} />
+                        </div>
+                        <button
+                          onClick={() => setSelectedMyNFT(null)}
+                          className="text-gray-400 hover:text-white transition-colors"
+                        >
+                          ✕
+                        </button>
                       </div>
-                      <div className="flex-1">
-                        <h3 className="text-white font-semibold text-lg">
-                          {selectedMyNFT.name}
-                        </h3>
-                      </div>
-                      <button
-                        onClick={() => setSelectedMyNFT(null)}
-                        className="text-gray-400 hover:text-white transition-colors"
-                      >
-                        ✕
-                      </button>
                     </div>
-                  </div>
-                ) : (
-                  <div className="bg-slate-900 rounded-xl p-6 border-2 border-dashed border-slate-700 mb-4">
-                    <p className="text-gray-400 text-center">
-                      Select an NFT from your collection
-                    </p>
-                  </div>
-                )}
+                  ) : (
+                    <div className="bg-slate-900 rounded-xl p-6 border-2 border-dashed border-slate-700 mb-4">
+                      <p className="text-gray-400 text-center">
+                        Select an NFT from your collection
+                      </p>
+                    </div>
+                  )}
 
-                {!selectedMyNFT && (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {ownedTokenIds.map((nft, index) => (
-                      <NFTCard
-                        key={index}
-                        nft={{
-                          name: "shitcoin1",
-                          image: "🔥",
-                          id: Number(nft),
-                        }}
-                        onClick={setSelectedMyNFT}
-                      />
-                    ))}
-                  </div>
-                )}
+                  {!selectedMyNFT && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {ownedTokenIds.map((nft, index) => (
+                        <NFTCard
+                          key={index}
+                          nft={{
+                            id: Number(nft),
+                          }}
+                          onClick={setSelectedMyNFT}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               {/* Swap Button */}
@@ -282,3 +317,49 @@ const NFTSwapDapp = () => {
 };
 
 export default App;
+
+const TokenUriImage = ({ isLoading, error, data: metadata }: Metaswr) => {
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center w-fit h-full">
+        <p className="text-sm text-center">Loading...</p>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="flex justify-center items-center w-fit h-full">
+        <p className="text-sm text-center">Failed to get metadata.</p>
+      </div>
+    );
+  }
+  if (metadata) {
+    return (
+      <img src={metadata.image} alt="NFT image" className="mx-auto block" />
+    );
+  }
+};
+
+const TokenUriName = ({ isLoading, error, data: metadata, id }: Metaswr2) => {
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center w-fit h-full">
+        <p className="text-sm text-center">Loading...</p>
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="flex justify-center items-center w-fit h-full">
+        <p className="text-sm text-center">Failed to get metadata.</p>
+      </div>
+    );
+  }
+  if (metadata) {
+    return (
+      <h3 className="text-white font-semibold text-sm mb-1">
+        {metadata.name} #{id}
+      </h3>
+    );
+  }
+};
