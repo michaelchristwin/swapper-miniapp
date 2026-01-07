@@ -7,11 +7,11 @@ import {
   useConnection,
   useConnectors,
   useSendTransaction,
+  useReadContracts,
 } from "wagmi";
 import { encodeFunctionData, parseUnits } from "viem";
-import { swapperContract } from "./config/contracts";
+import { contractB, swapperContract } from "./config/contracts";
 import useSWR from "swr";
-import { getUserBucket } from "./util";
 
 type Nft = {
   name: string;
@@ -35,12 +35,32 @@ const NFTSwapDapp = () => {
   const connectors = useConnectors();
   const { mutate } = useSendTransaction();
 
+  const tokenIds = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+  const contracts = tokenIds.map((id) => ({
+    ...contractB,
+    functionName: "ownerOf" as const,
+    args: [BigInt(id)] as const,
+  }));
+  const { data: owners } = useReadContracts({
+    //@ts-ignore
+    contracts,
+    allowFailure: true,
+  });
+  const ownedTokenIds: bigint[] = [];
+
+  owners?.forEach((item, i) => {
+    if (
+      item.status === "success" &&
+      (item.result as string).toLowerCase() === address?.toLowerCase()
+    ) {
+      ownedTokenIds.push(BigInt(tokenIds[i]));
+    }
+    // if status === 'failure' → token doesn't exist, just skip
+  });
+
   const fetcher = (url: string) => fetch(url).then((res) => res.json());
   const { data: c1 } = useSWR("/api/dune-proxy", fetcher);
-  const { data: c2 } = useSWR("c2", async () => {
-    const d = await getUserBucket(address as `0x${string}`);
-    return d;
-  });
 
   const handlePeerNFTClick = (nft: Nft) => {
     setSelectedPeerNFT(nft);
@@ -202,15 +222,15 @@ const NFTSwapDapp = () => {
                   </div>
                 )}
 
-                {!selectedMyNFT && c2 && (
+                {!selectedMyNFT && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {c2.map((nft, index) => (
+                    {ownedTokenIds.map((nft, index) => (
                       <NFTCard
                         key={index}
                         nft={{
                           name: "shitcoin1",
                           image: "🔥",
-                          id: nft.token_id,
+                          id: Number(nft),
                         }}
                         onClick={setSelectedMyNFT}
                       />
