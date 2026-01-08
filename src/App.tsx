@@ -135,7 +135,7 @@ const NFTSwapDapp = () => {
   }) => (
     <div
       onClick={() => onClick && onClick(nft)}
-      className={`bg-linear-to-br from-slate-800 to-slate-900 rounded-xl p-4 cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-cyan-500/20 border-2 ${
+      className={`bg-linear-to-br min-w-20 min-h-30 from-slate-800 to-slate-900 rounded-xl p-4 cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-cyan-500/20 border-2 ${
         selected
           ? "border-cyan-400 shadow-lg shadow-cyan-500/50"
           : "border-slate-700"
