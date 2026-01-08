@@ -59,6 +59,7 @@ const NFTSwapDapp = () => {
     functionName: "balanceOf",
     args: [address],
   });
+
   const balance = balanceData ? Number(balanceData) : 0;
   const { data: tokenIdsData, isLoading: _idsLoading } = useReadContracts({
     allowFailure: false, // set true if you want partial results on failure
@@ -84,7 +85,7 @@ const NFTSwapDapp = () => {
     ...swapperContract,
     functionName: "getAvailableTokens",
   });
-
+  console.log(c1);
   const {
     mutate: m,
     isValidating: isVal,
