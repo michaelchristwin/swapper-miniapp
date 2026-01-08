@@ -8,6 +8,7 @@ import {
   useConnectors,
   useSendTransaction,
   useReadContracts,
+  useReadContract,
 } from "wagmi";
 import { encodeFunctionData, parseUnits } from "viem";
 import { contractB, swapperContract } from "./config/contracts";
@@ -43,7 +44,7 @@ function App() {
   }, []);
   return <NFTSwapDapp />;
 }
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+
 const NFTSwapDapp = () => {
   const [view, setView] = useState("gallery");
   const [selectedPeerNFT, setSelectedPeerNFT] = useState<Nft | null>(null);
@@ -64,6 +65,10 @@ const NFTSwapDapp = () => {
     contracts,
     allowFailure: true,
   });
+  const { data: c1 } = useReadContract({
+    ...swapperContract,
+    functionName: "getAvailableTokens",
+  });
   const ownedTokenIds: bigint[] = [];
 
   owners?.forEach((item, i) => {
@@ -76,7 +81,6 @@ const NFTSwapDapp = () => {
     // if status === 'failure' → token doesn't exist, just skip
   });
 
-  const { data: c1 } = useSWR("/api/dune-proxy", fetcher);
   const {
     mutate: ff,
     isValidating: gg,
@@ -167,13 +171,13 @@ const NFTSwapDapp = () => {
               <h2 className="text-2xl font-bold text-white mb-6">
                 Select desired NFT
               </h2>
-              {c1 && (
+              {(c1 as number[]) && (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {[...c1].map((nft, index) => (
+                  {[...(c1 as number[])].map((nft, index) => (
                     <NFTCard
                       key={index}
                       nft={{
-                        id: nft.token_id,
+                        id: nft,
                       }}
                       onClick={handlePeerNFTClick}
                     />
@@ -212,9 +216,7 @@ const NFTSwapDapp = () => {
                           <TokenUriImage {...rest} />
                         </div>
                         <div className="flex-1">
-                          <h3 className="text-white font-semibold text-lg">
-                            <TokenUriName {...rest} id={selectedPeerNFT.id} />
-                          </h3>
+                          <TokenUriName {...rest} id={selectedPeerNFT.id} />
                         </div>
                       </div>
                     </div>
@@ -358,7 +360,7 @@ const TokenUriName = ({ isLoading, error, data: metadata, id }: Metaswr2) => {
   if (metadata) {
     return (
       <h3 className="text-white font-semibold text-sm mb-1">
-        {metadata.name} #{id}
+        {metadata.name} #{Number(id)}
       </h3>
     );
   }

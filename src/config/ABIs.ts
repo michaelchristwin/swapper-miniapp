@@ -22,10 +22,24 @@ export const swapperABI = [
     type: "function",
   },
   {
+    inputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    name: "availableTokens",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [{ internalType: "uint256", name: "tokenId", type: "uint256" }],
-    name: "donate",
+    name: "deposit",
     outputs: [],
     stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "getAvailableTokens",
+    outputs: [{ internalType: "uint256[]", name: "", type: "uint256[]" }],
+    stateMutability: "view",
     type: "function",
   },
   {
@@ -36,6 +50,13 @@ export const swapperABI = [
     name: "swap",
     outputs: [],
     stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    name: "tokenIndex",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
     type: "function",
   },
   {

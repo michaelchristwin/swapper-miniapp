@@ -1,7 +1,7 @@
 import { swapperABI, nftABI } from "./ABIs";
 
 export const swapperContract = {
-  address: "0x3d231A1D8DB037A08AC0995D756Ff68315fc93B1",
+  address: "0xbB71e921EA9Bd33EB03a11B3Bc3Cef2E6cA24006",
   abi: swapperABI,
 } as const;
 
