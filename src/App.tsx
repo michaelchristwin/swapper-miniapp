@@ -202,7 +202,7 @@ const NFTSwapDapp = () => {
               Back to Gallery
             </button>
 
-            <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl p-8 border border-slate-700">
+            <div className="bg-slate-800/50 backdrop-blur-sm rounded-2xl md:p-8 p-3 border border-slate-700">
               {/* Selected Peer NFT */}
               <div className="flex justify-between w-full items-center">
                 <div className="mb-6">
@@ -210,9 +210,9 @@ const NFTSwapDapp = () => {
                     You receive
                   </label>
                   {selectedPeerNFT && (
-                    <div className="bg-slate-900 rounded-xl p-6 border-2 border-cyan-400">
+                    <div className="bg-slate-900 rounded-xl p-6 border-2 border-cyan-400 md:w-60 md:h-70 w-30 h-40">
                       <div className="flex flex-col items-center">
-                        <div className="w-50 h-50 bg-linear-to-br from-slate-700 to-slate-800 rounded-lg flex items-center justify-center text-4xl">
+                        <div className="h-full w-full bg-linear-to-br from-slate-700 to-slate-800 rounded-lg flex items-center justify-center text-4xl">
                           <TokenUriImage {...rest} />
                         </div>
                         <div className="flex-1">
@@ -236,9 +236,9 @@ const NFTSwapDapp = () => {
                     You send
                   </label>
                   {selectedMyNFT ? (
-                    <div className="bg-slate-900 rounded-xl p-6 border-2 border-purple-400 mb-4">
+                    <div className="bg-slate-900 rounded-xl p-6 border-2 border-purple-400 mb-4 md:w-60 md:h-70 w-30 h-40">
                       <div className="block gap-4">
-                        <div className="w-50 h-50 bg-linear-to-br from-slate-700 to-slate-800 rounded-lg flex items-center justify-center text-4xl">
+                        <div className="h-full w-full bg-linear-to-br from-slate-700 to-slate-800 rounded-lg flex items-center justify-center text-4xl">
                           <TokenUriImage {...rest} />
                         </div>
                         <div className="flex-1">
@@ -336,9 +336,7 @@ const TokenUriImage = ({ isLoading, error, data: metadata }: Metaswr) => {
     );
   }
   if (metadata) {
-    return (
-      <img src={metadata.image} alt="NFT image" className="mx-auto block" />
-    );
+    return <img src={metadata.image} alt="NFT image" />;
   }
 };
 
