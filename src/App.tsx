@@ -54,36 +54,40 @@ const NFTSwapDapp = () => {
   const connectors = useConnectors();
   const { mutateAsync } = useSendTransaction();
 
-  const tokenIds = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-  const contracts = tokenIds.map((id) => ({
+  const { data: balanceData } = useReadContract({
     ...contractB,
-    functionName: "ownerOf" as const,
-    args: [BigInt(id)] as const,
-  }));
-  const { data: owners } = useReadContracts({
-    //@ts-ignore
-    contracts,
-    allowFailure: true,
+    functionName: "balanceOf",
+    args: [address],
   });
+  const balance = balanceData ? Number(balanceData) : 0;
+  const { data: tokenIdsData, isLoading: _idsLoading } = useReadContracts({
+    allowFailure: false, // set true if you want partial results on failure
+    //@ts-ignore
+    contracts:
+      address && balance > 0
+        ? Array.from({ length: balance }, (_, i) => ({
+            ...contractB,
+            functionName: "tokenOfOwnerByIndex" as const,
+            args: [address, BigInt(i)],
+          }))
+        : [],
+    query: {
+      enabled: !!address && balance > 0,
+    },
+  });
+  const tokenIds = tokenIdsData
+    //@ts-ignore
+    ?.map((res) => (res.status === "success" ? res.result : null))
+    .filter(Boolean);
+
   const { data: c1 } = useReadContract({
     ...swapperContract,
     functionName: "getAvailableTokens",
   });
-  const ownedTokenIds: bigint[] = [];
-
-  owners?.forEach((item, i) => {
-    if (
-      item.status === "success" &&
-      (item.result as string).toLowerCase() === address?.toLowerCase()
-    ) {
-      ownedTokenIds.push(BigInt(tokenIds[i]));
-    }
-    // if status === 'failure' → token doesn't exist, just skip
-  });
 
   const {
-    mutate: ff,
-    isValidating: gg,
+    mutate: m,
+    isValidating: isVal,
     ...rest
   } = useSWR(["tokenUri"], async () => {
     const result = await fetch(
@@ -260,9 +264,9 @@ const NFTSwapDapp = () => {
                     </div>
                   )}
 
-                  {!selectedMyNFT && (
+                  {!selectedMyNFT && tokenIds && (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {ownedTokenIds.map((nft, index) => (
+                      {tokenIds.map((nft, index) => (
                         <NFTCard
                           key={index}
                           nft={{

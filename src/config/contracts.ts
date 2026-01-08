@@ -1,16 +1,16 @@
-import { swapperABI, nftABI } from "./ABIs";
+import { swapperABI, Dgen1OGABI, Dgen1ALTABI } from "./ABIs";
 
 export const swapperContract = {
-  address: "0xbB71e921EA9Bd33EB03a11B3Bc3Cef2E6cA24006",
+  address: "0x3a38e68608AD7919A8A5C23A9c5eE1bf5a9E2BC0",
   abi: swapperABI,
 } as const;
 
 export const contractA = {
-  address: "0xA39626695A3bE5F151D52eE65201F485411E481F",
-  abi: nftABI,
+  address: "0x7533E410Ed2780807488B0068399788b2932B4e1 ",
+  abi: Dgen1OGABI,
 } as const;
 
 export const contractB = {
-  address: "0x4E6A5E219092C39102B1Ccf1BAF330f498e4B7a0",
-  abi: nftABI,
+  address: "0xF93A86D2678E925B97F19A3c848681DfF4Fa5403",
+  abi: Dgen1ALTABI,
 } as const;

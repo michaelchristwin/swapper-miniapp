@@ -6,7 +6,7 @@
     "homeUrl": "https://swapper-miniapp.vercel.app",
     "imageUrl": "https://swapper-miniapp.vercel.app/swap.png",
     "buttonTitle": "Swap dgen1 NFT",
-    "splashImageUrl": "https://swapper-miniapp.vercel.app/swap.png",
+    "splashImageUrl": "https://swapper-miniapp.vercel.app/trade.gif",
     "splashBackgroundColor": "#f5f0ec",
     "webhookUrl": "https://swapper-miniapp.vercel.app/api/webhook",
     "subtitle": "swap your dgen1 NFTs",
