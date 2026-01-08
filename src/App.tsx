@@ -11,7 +11,7 @@ import {
   useReadContract,
 } from "wagmi";
 import { encodeFunctionData, parseUnits } from "viem";
-import { contractB, swapperContract } from "./config/contracts";
+import { contractA, contractB, swapperContract } from "./config/contracts";
 import useSWR from "swr";
 
 type MetaData = {
@@ -21,21 +21,7 @@ type MetaData = {
 };
 
 type Nft = {
-  name?: string;
-  image?: string;
-  id: number;
-};
-
-type Metaswr = {
-  data?: MetaData;
-  isLoading: boolean;
-  error: any;
-};
-type Metaswr2 = {
-  data?: MetaData;
-  isLoading: boolean;
-  error: any;
-  id: number;
+  id: bigint;
 };
 
 function App() {
@@ -85,18 +71,6 @@ const NFTSwapDapp = () => {
     ...swapperContract,
     functionName: "getAvailableTokens",
   });
-  console.log(c1);
-  const {
-    mutate: m,
-    isValidating: isVal,
-    ...rest
-  } = useSWR(["tokenUri"], async () => {
-    const result = await fetch(
-      "https://ethosdnfturi-mqixczdraq-uc.a.run.app/?t=1"
-    );
-    const data: MetaData = await result.json();
-    return data;
-  });
 
   const handlePeerNFTClick = (nft: Nft) => {
     setSelectedPeerNFT(nft);
@@ -133,10 +107,12 @@ const NFTSwapDapp = () => {
     nft,
     onClick,
     selected,
+    og,
   }: {
     nft: Nft;
     onClick: (nft: Nft) => void;
     selected?: boolean;
+    og: boolean;
   }) => (
     <div
       onClick={() => onClick && onClick(nft)}
@@ -147,9 +123,9 @@ const NFTSwapDapp = () => {
       }`}
     >
       <div className="aspect-square bg-linear-to-br from-slate-700 to-slate-800 rounded-lg flex items-center justify-center text-6xl mb-3">
-        <TokenUriImage {...rest} />
+        <TokenUriImage id={nft.id} og={og} />
       </div>
-      <TokenUriName {...rest} id={nft.id} />
+      <TokenUriName id={nft.id} og={og} />
     </div>
   );
 
@@ -178,13 +154,14 @@ const NFTSwapDapp = () => {
               </h2>
               {(c1 as number[]) && (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {[...(c1 as number[])].map((nft, index) => (
+                  {[...(c1 as bigint[])].map((nft, index) => (
                     <NFTCard
                       key={index}
                       nft={{
                         id: nft,
                       }}
                       onClick={handlePeerNFTClick}
+                      og={true}
                     />
                   ))}
                 </div>
@@ -218,10 +195,10 @@ const NFTSwapDapp = () => {
                     <div className="bg-slate-900 rounded-xl p-6 border-2 border-cyan-400 md:w-60 md:h-70 w-30 h-40">
                       <div className="flex flex-col items-center">
                         <div className="h-full w-full bg-linear-to-br from-slate-700 to-slate-800 rounded-lg flex items-center justify-center text-4xl">
-                          <TokenUriImage {...rest} />
+                          <TokenUriImage id={selectedPeerNFT.id} og />
                         </div>
                         <div className="flex-1">
-                          <TokenUriName {...rest} id={selectedPeerNFT.id} />
+                          <TokenUriName id={selectedPeerNFT.id} og />
                         </div>
                       </div>
                     </div>
@@ -244,10 +221,10 @@ const NFTSwapDapp = () => {
                     <div className="bg-slate-900 rounded-xl p-6 border-2 border-purple-400 mb-4 md:w-60 md:h-70 w-30 h-40">
                       <div className="block gap-4">
                         <div className="h-full w-full bg-linear-to-br from-slate-700 to-slate-800 rounded-lg flex items-center justify-center text-4xl">
-                          <TokenUriImage {...rest} />
+                          <TokenUriImage id={selectedMyNFT.id} og={false} />
                         </div>
                         <div className="flex-1">
-                          <TokenUriName {...rest} id={selectedMyNFT.id} />
+                          <TokenUriName id={selectedMyNFT.id} og={false} />
                         </div>
                         <button
                           onClick={() => setSelectedMyNFT(null)}
@@ -271,9 +248,10 @@ const NFTSwapDapp = () => {
                         <NFTCard
                           key={index}
                           nft={{
-                            id: Number(nft),
+                            id: nft,
                           }}
                           onClick={setSelectedMyNFT}
+                          og={false}
                         />
                       ))}
                     </div>
@@ -325,35 +303,100 @@ const NFTSwapDapp = () => {
 
 export default App;
 
-const TokenUriImage = ({ isLoading, error, data: metadata }: Metaswr) => {
-  if (isLoading) {
+const TokenUriImage = ({ id, og }: { id: bigint; og: boolean }) => {
+  const contractConfig = () => {
+    return og ? contractA : contractB;
+  };
+  const {
+    data: uri,
+    error: e1,
+    isLoading: isLoading1,
+  } = useReadContract({
+    ...contractConfig(),
+    functionName: "tokenURI",
+    args: [id],
+  });
+  const {
+    data: metadata,
+    error: e2,
+    isLoading: isLoading2,
+  } = useSWR(uri ? ["tokenUri", uri] : null, async () => {
+    const response = await fetch(uri as string);
+    const data: MetaData = await response.json();
+    return data;
+  });
+  if (isLoading1) {
     return (
       <div className="flex justify-center items-center w-fit h-full">
         <p className="text-sm text-center">Loading...</p>
       </div>
     );
   }
-  if (error) {
+  if (isLoading2) {
+    return (
+      <div className="flex justify-center items-center w-fit h-full">
+        <p className="text-sm text-center">Loading...</p>
+      </div>
+    );
+  }
+
+  if (e1) {
     return (
       <div className="flex justify-center items-center w-fit h-full">
         <p className="text-sm text-center">Failed to get metadata.</p>
       </div>
     );
   }
+  if (e2) {
+    return (
+      <div className="flex justify-center items-center w-fit h-full">
+        <p className="text-sm text-center">Failed to get metadata.</p>
+      </div>
+    );
+  }
+
   if (metadata) {
     return <img src={metadata.image} alt="NFT image" />;
   }
 };
 
-const TokenUriName = ({ isLoading, error, data: metadata, id }: Metaswr2) => {
-  if (isLoading) {
+const TokenUriName = ({ id, og }: { id: bigint; og: boolean }) => {
+  const contractConfig = () => {
+    return og ? contractA : contractB;
+  };
+  const {
+    data: uri,
+    error: e1,
+    isLoading: isLoading1,
+  } = useReadContract({
+    ...contractConfig(),
+    functionName: "tokenURI",
+    args: [id],
+  });
+  const {
+    data: metadata,
+    error: e2,
+    isLoading: isLoading2,
+  } = useSWR(uri ? ["tokenUri", uri] : null, async () => {
+    const response = await fetch(uri as string);
+    const data: MetaData = await response.json();
+    return data;
+  });
+  if (isLoading1) {
+    return <p className="text-sm text-center">Loading...</p>;
+  }
+  if (isLoading2) {
+    return <p className="text-sm text-center">Loading...</p>;
+  }
+
+  if (e1) {
     return (
       <div className="flex justify-center items-center w-fit h-full">
-        <p className="text-sm text-center">Loading...</p>
+        <p className="text-sm text-center">Failed to get metadata.</p>
       </div>
     );
   }
-  if (error) {
+  if (e2) {
     return (
       <div className="flex justify-center items-center w-fit h-full">
         <p className="text-sm text-center">Failed to get metadata.</p>

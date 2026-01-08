@@ -6,7 +6,7 @@ export const swapperContract = {
 } as const;
 
 export const contractA = {
-  address: "0x7533E410Ed2780807488B0068399788b2932B4e1 ",
+  address: "0x7533E410Ed2780807488B0068399788b2932B4e1",
   abi: Dgen1OGABI,
 } as const;
 
