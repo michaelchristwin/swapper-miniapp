@@ -48,7 +48,7 @@ const NFTSwapDapp = () => {
 
   const balance = balanceData ? Number(balanceData) : 0;
   const { data: tokenIdsData, isLoading: _idsLoading } = useReadContracts({
-    allowFailure: false, // set true if you want partial results on failure
+    allowFailure: true, // set true if you want partial results on failure
     //@ts-ignore
     contracts:
       address && balance > 0
@@ -248,7 +248,7 @@ const NFTSwapDapp = () => {
                         <NFTCard
                           key={index}
                           nft={{
-                            id: nft,
+                            id: nft as bigint,
                           }}
                           onClick={setSelectedMyNFT}
                           og={false}
@@ -313,9 +313,10 @@ const TokenUriImage = ({ id, og }: { id: bigint; og: boolean }) => {
     isLoading: isLoading1,
   } = useReadContract({
     ...contractConfig(),
-    functionName: "tokenURI",
+    functionName: "tokenURI" as const,
     args: [id],
   });
+  console.log(uri);
   const {
     data: metadata,
     error: e2,
