@@ -9,10 +9,12 @@ import {
   useSendTransaction,
   useReadContracts,
   useReadContract,
+  useWaitForTransactionReceipt,
 } from "wagmi";
 import { encodeFunctionData, parseUnits } from "viem";
 import { contractA, contractB, swapperContract } from "./config/contracts";
 import useSWR from "swr";
+import toast from "react-hot-toast";
 
 type MetaData = {
   description: string;
@@ -38,7 +40,8 @@ const NFTSwapDapp = () => {
   const { isConnected, address } = useConnection();
   const connect = useConnect();
   const connectors = useConnectors();
-  const { mutateAsync } = useSendTransaction();
+  const { mutateAsync: approve } = useSendTransaction();
+  const { mutateAsync: swap, data: hash } = useSendTransaction();
 
   const { data: balanceData } = useReadContract({
     ...contractB,
@@ -78,7 +81,7 @@ const NFTSwapDapp = () => {
   };
 
   const handleSwap = async () => {
-    await mutateAsync({
+    await approve({
       to: contractB.address,
       data: encodeFunctionData({
         abi: contractB.abi,
@@ -90,7 +93,7 @@ const NFTSwapDapp = () => {
       }),
     });
 
-    await mutateAsync({
+    await swap({
       to: swapperContract.address,
       data: encodeFunctionData({
         abi: swapperContract.abi,
@@ -102,6 +105,19 @@ const NFTSwapDapp = () => {
       }),
     });
   };
+  const { isLoading: isConfirming, isSuccess: isConfirmed } =
+    useWaitForTransactionReceipt({
+      hash,
+    });
+
+  useEffect(() => {
+    if (isConfirmed) {
+      toast.success("Swap Successful");
+      setSelectedMyNFT(null);
+      setSelectedPeerNFT(null);
+      setView("gallery");
+    }
+  }, [isConfirmed]);
 
   const NFTCard = ({
     nft,
@@ -260,12 +276,30 @@ const NFTSwapDapp = () => {
               </div>
 
               {/* Swap Button */}
+
               {isConnected && selectedPeerNFT && selectedMyNFT && (
                 <button
                   onClick={handleSwap}
-                  className="w-full py-4 rounded-xl font-bold text-lg transition-all bg-linear-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white shadow-lg shadow-purple-500/50"
+                  disabled={isConfirming}
+                  className="w-full flex disabled:opacity-60 items-center justify-center space-x-1.5 py-4 rounded-xl font-bold text-lg transition-all bg-linear-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white shadow-lg shadow-purple-500/50"
                 >
-                  Swap NFTs
+                  <span>Swap NFTs</span>
+                  {isConfirming && (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="lucide lucide-loader-circle-icon lucide-loader-circle animate-spin"
+                    >
+                      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                    </svg>
+                  )}
                 </button>
               )}
               {!isConnected && (
@@ -316,7 +350,7 @@ const TokenUriImage = ({ id, og }: { id: bigint; og: boolean }) => {
     functionName: "tokenURI" as const,
     args: [id],
   });
-  console.log(uri);
+
   const {
     data: metadata,
     error: e2,
