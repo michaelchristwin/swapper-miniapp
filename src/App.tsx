@@ -357,7 +357,15 @@ const TokenUriImage = ({ id, og }: { id: bigint; og: boolean }) => {
   }
 
   if (metadata) {
-    return <img src={metadata.image} alt="NFT image" />;
+    const src = metadata.image;
+
+    const isVideo = /\.(mp4|webm|ogg)$/i.test(src);
+
+    return isVideo ? (
+      <video src={src} autoPlay loop muted />
+    ) : (
+      <img src={src} alt="NFT" />
+    );
   }
 };
 
