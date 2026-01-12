@@ -3,19 +3,22 @@ import { useEffect } from "react";
 import { useState } from "react";
 import { ArrowDownUp, ArrowLeft } from "lucide-react";
 import {
-  useConnect,
   useConnection,
-  useConnectors,
   useSendTransaction,
   useReadContracts,
   useReadContract,
 } from "wagmi";
 import { encodeFunctionData, parseUnits } from "viem";
-import { contractA, contractB, swapperContract } from "./config/contracts";
+import {
+  contractATestnet,
+  contractBTestnet,
+  swapperTestnet,
+} from "./config/contracts";
 import useSWR from "swr";
 import toast from "react-hot-toast";
 import { waitForTransactionReceipt } from "wagmi/actions";
 import { config } from "./config/wagmi";
+import { useAppKit } from "@reown/appkit/react";
 
 type MetaData = {
   description: string;
@@ -29,7 +32,12 @@ type Nft = {
 
 function App() {
   useEffect(() => {
-    sdk.actions.ready();
+    (async () => {
+      const isMini = await sdk.isInMiniApp();
+      if (isMini) {
+        sdk.actions.ready();
+      }
+    })();
   }, []);
   return <NFTSwapDapp />;
 }
@@ -39,23 +47,27 @@ const NFTSwapDapp = () => {
   const [selectedPeerNFT, setSelectedPeerNFT] = useState<Nft | null>(null);
   const [selectedMyNFT, setSelectedMyNFT] = useState<Nft | null>(null);
   const { isConnected, address } = useConnection();
-  const connect = useConnect();
-  const connectors = useConnectors();
+  const { open } = useAppKit();
 
   const { data: balanceData } = useReadContract({
-    ...contractB,
+    ...contractBTestnet,
     functionName: "balanceOf",
-    args: [address],
+    args: [address!],
+    query: {
+      enabled: isConnected && !!address,
+    },
   });
-
+  console.log(isConnected);
+  console.log("BalanceData: ", balanceData);
   const balance = balanceData ? Number(balanceData) : 0;
+  console.log("Balance: ", balance);
   const { data: tokenIdsData, isLoading: _idsLoading } = useReadContracts({
     allowFailure: true, // set true if you want partial results on failure
     //@ts-ignore
     contracts:
       address && balance > 0
         ? Array.from({ length: balance }, (_, i) => ({
-            ...contractB,
+            ...contractBTestnet,
             functionName: "tokenOfOwnerByIndex" as const,
             args: [address, BigInt(i)],
           }))
@@ -70,7 +82,7 @@ const NFTSwapDapp = () => {
     .filter(Boolean);
 
   const { data: c1 } = useReadContract({
-    ...swapperContract,
+    ...swapperTestnet,
     functionName: "getAvailableTokens",
   });
 
@@ -94,12 +106,12 @@ const NFTSwapDapp = () => {
       setIsApproveConfirmed(false);
 
       const approveHash = await sendTx({
-        to: contractB.address,
+        to: contractBTestnet.address,
         data: encodeFunctionData({
-          abi: contractB.abi,
+          abi: contractBTestnet.abi,
           functionName: "approve",
           args: [
-            swapperContract.address,
+            swapperTestnet.address,
             parseUnits(selectedMyNFT!.id.toString(), 9),
           ],
         }),
@@ -115,9 +127,9 @@ const NFTSwapDapp = () => {
       setIsSwapConfirmed(false);
 
       const swapHash = await sendTx({
-        to: swapperContract.address,
+        to: swapperTestnet.address,
         data: encodeFunctionData({
-          abi: swapperContract.abi,
+          abi: swapperTestnet.abi,
           functionName: "swap",
           args: [
             parseUnits(selectedPeerNFT!.id.toString(), 9),
@@ -201,7 +213,7 @@ const NFTSwapDapp = () => {
               <h2 className="text-2xl font-bold text-white mb-6">
                 Select desired NFT
               </h2>
-              {(c1 as number[]) && (
+              {c1 && (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {[...(c1 as bigint[])].map((nft, index) => (
                     <NFTCard
@@ -339,7 +351,7 @@ const NFTSwapDapp = () => {
               {!isConnected && (
                 <button
                   type="button"
-                  onClick={() => connect.mutate({ connector: connectors[0] })}
+                  onClick={() => open()}
                   className="w-full py-4 rounded-xl font-bold text-lg transition-all bg-linear-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white shadow-lg shadow-purple-500/50"
                 >
                   Connect Wallet
@@ -372,15 +384,13 @@ const NFTSwapDapp = () => {
 export default App;
 
 const TokenUriImage = ({ id, og }: { id: bigint; og: boolean }) => {
-  const contractConfig = () => {
-    return og ? contractA : contractB;
-  };
   const {
     data: uri,
     error: e1,
     isLoading: isLoading1,
   } = useReadContract({
-    ...contractConfig(),
+    address: og ? contractATestnet.address : contractBTestnet.address,
+    abi: og ? contractATestnet.abi : contractBTestnet.abi,
     functionName: "tokenURI" as const,
     args: [id],
   });
@@ -438,15 +448,13 @@ const TokenUriImage = ({ id, og }: { id: bigint; og: boolean }) => {
 };
 
 const TokenUriName = ({ id, og }: { id: bigint; og: boolean }) => {
-  const contractConfig = () => {
-    return og ? contractA : contractB;
-  };
   const {
     data: uri,
     error: e1,
     isLoading: isLoading1,
   } = useReadContract({
-    ...contractConfig(),
+    address: og ? contractATestnet.address : contractBTestnet.address,
+    abi: og ? contractATestnet.abi : contractBTestnet.abi,
     functionName: "tokenURI",
     args: [id],
   });
