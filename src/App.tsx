@@ -9,12 +9,13 @@ import {
   useSendTransaction,
   useReadContracts,
   useReadContract,
-  useWaitForTransactionReceipt,
 } from "wagmi";
 import { encodeFunctionData, parseUnits } from "viem";
 import { contractA, contractB, swapperContract } from "./config/contracts";
 import useSWR from "swr";
 import toast from "react-hot-toast";
+import { waitForTransactionReceipt } from "wagmi/actions";
+import { config } from "./config/wagmi";
 
 type MetaData = {
   description: string;
@@ -40,8 +41,6 @@ const NFTSwapDapp = () => {
   const { isConnected, address } = useConnection();
   const connect = useConnect();
   const connectors = useConnectors();
-  const { mutateAsync: approve } = useSendTransaction();
-  const { mutateAsync: swap, data: hash } = useSendTransaction();
 
   const { data: balanceData } = useReadContract({
     ...contractB,
@@ -80,44 +79,78 @@ const NFTSwapDapp = () => {
     setView("swap");
   };
 
-  const handleSwap = async () => {
-    await approve({
-      to: contractB.address,
-      data: encodeFunctionData({
-        abi: contractB.abi,
-        functionName: "approve",
-        args: [
-          swapperContract.address,
-          parseUnits(selectedMyNFT?.id.toString() as string, 9),
-        ],
-      }),
-    });
+  const { mutateAsync: sendTx } = useSendTransaction();
 
-    await swap({
-      to: swapperContract.address,
-      data: encodeFunctionData({
-        abi: swapperContract.abi,
-        functionName: "swap",
-        args: [
-          parseUnits(selectedPeerNFT?.id.toString() as string, 9),
-          parseUnits(selectedMyNFT?.id.toString() as string, 9),
-        ],
-      }),
-    });
+  const [isApproving, setIsApproving] = useState(false);
+  const [isApproveConfirmed, setIsApproveConfirmed] = useState(false);
+
+  const [isSwapping, setIsSwapping] = useState(false);
+  const [isSwapConfirmed, setIsSwapConfirmed] = useState(false);
+
+  const handleSwap = async () => {
+    try {
+      // APPROVE
+      setIsApproving(true);
+      setIsApproveConfirmed(false);
+
+      const approveHash = await sendTx({
+        to: contractB.address,
+        data: encodeFunctionData({
+          abi: contractB.abi,
+          functionName: "approve",
+          args: [
+            swapperContract.address,
+            parseUnits(selectedMyNFT!.id.toString(), 9),
+          ],
+        }),
+      });
+
+      await waitForTransactionReceipt(config, { hash: approveHash });
+
+      setIsApproving(false);
+      setIsApproveConfirmed(true);
+
+      // SWAP
+      setIsSwapping(true);
+      setIsSwapConfirmed(false);
+
+      const swapHash = await sendTx({
+        to: swapperContract.address,
+        data: encodeFunctionData({
+          abi: swapperContract.abi,
+          functionName: "swap",
+          args: [
+            parseUnits(selectedPeerNFT!.id.toString(), 9),
+            parseUnits(selectedMyNFT!.id.toString(), 9),
+          ],
+        }),
+      });
+
+      await waitForTransactionReceipt(config, { hash: swapHash });
+
+      setIsSwapping(false);
+      setIsSwapConfirmed(true);
+    } catch (err) {
+      setIsApproving(false);
+      setIsSwapping(false);
+      throw err;
+    }
   };
-  const { isLoading: isConfirming, isSuccess: isConfirmed } =
-    useWaitForTransactionReceipt({
-      hash,
-    });
 
   useEffect(() => {
-    if (isConfirmed) {
+    if (isApproveConfirmed) {
+      toast.success("Approval Sucessful");
+    }
+  }, [isApproveConfirmed]);
+
+  useEffect(() => {
+    if (isSwapConfirmed) {
       toast.success("Swap Successful");
       setSelectedMyNFT(null);
       setSelectedPeerNFT(null);
       setView("gallery");
     }
-  }, [isConfirmed]);
+  }, [isSwapConfirmed]);
 
   const NFTCard = ({
     nft,
@@ -280,26 +313,27 @@ const NFTSwapDapp = () => {
               {isConnected && selectedPeerNFT && selectedMyNFT && (
                 <button
                   onClick={handleSwap}
-                  disabled={isConfirming}
+                  disabled={isSwapping || isApproving}
                   className="w-full flex disabled:opacity-60 items-center justify-center space-x-1.5 py-4 rounded-xl font-bold text-lg transition-all bg-linear-to-r from-cyan-500 to-purple-500 hover:from-cyan-600 hover:to-purple-600 text-white shadow-lg shadow-purple-500/50"
                 >
                   <span>Swap NFTs</span>
-                  {isConfirming && (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="lucide lucide-loader-circle-icon lucide-loader-circle animate-spin"
-                    >
-                      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                    </svg>
-                  )}
+                  {isSwapping ||
+                    (isApproving && (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="lucide lucide-loader-circle-icon lucide-loader-circle animate-spin"
+                      >
+                        <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                      </svg>
+                    ))}
                 </button>
               )}
               {!isConnected && (
