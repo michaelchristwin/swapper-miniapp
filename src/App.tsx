@@ -28,12 +28,7 @@ type Nft = {
 
 function App() {
   useEffect(() => {
-    (async () => {
-      const isMini = await sdk.isInMiniApp();
-      if (isMini) {
-        sdk.actions.ready();
-      }
-    })();
+    sdk.actions.ready();
   }, []);
   return <NFTSwapDapp />;
 }
