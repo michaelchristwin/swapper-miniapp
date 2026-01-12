@@ -66,7 +66,7 @@ export const swapperABI = [
     stateMutability: "payable",
     type: "function",
   },
-];
+] as const;
 
 export const Dgen1OGABI = [
   { inputs: [], stateMutability: "nonpayable", type: "constructor" },
@@ -453,7 +453,7 @@ export const Dgen1OGABI = [
     stateMutability: "nonpayable",
     type: "function",
   },
-];
+] as const;
 
 export const Dgen1ALTABI = [
   {
@@ -1247,7 +1247,7 @@ export const Dgen1ALTABI = [
     stateMutability: "nonpayable",
     type: "function",
   },
-];
+] as const;
 
 export const swapperTestnetABI = [
   { inputs: [], name: "Reentrancy", type: "error" },

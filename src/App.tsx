@@ -8,12 +8,8 @@ import {
   useReadContracts,
   useReadContract,
 } from "wagmi";
-import { encodeFunctionData, parseUnits } from "viem";
-import {
-  contractATestnet,
-  contractBTestnet,
-  swapperTestnet,
-} from "./config/contracts";
+import { encodeFunctionData } from "viem";
+import { contractA, contractB, swapperContract } from "./config/contracts";
 import useSWR from "swr";
 import toast from "react-hot-toast";
 import { waitForTransactionReceipt } from "wagmi/actions";
@@ -50,14 +46,14 @@ const NFTSwapDapp = () => {
   const { open } = useAppKit();
 
   const { data: balanceData } = useReadContract({
-    ...contractBTestnet,
+    ...contractB,
     functionName: "balanceOf",
     args: [address!],
     query: {
       enabled: isConnected && !!address,
     },
   });
-  console.log(isConnected);
+
   console.log("BalanceData: ", balanceData);
   const balance = balanceData ? Number(balanceData) : 0;
   console.log("Balance: ", balance);
@@ -67,7 +63,7 @@ const NFTSwapDapp = () => {
     contracts:
       address && balance > 0
         ? Array.from({ length: balance }, (_, i) => ({
-            ...contractBTestnet,
+            ...contractB,
             functionName: "tokenOfOwnerByIndex" as const,
             args: [address, BigInt(i)],
           }))
@@ -81,8 +77,8 @@ const NFTSwapDapp = () => {
     ?.map((res) => (res.status === "success" ? res.result : null))
     .filter(Boolean);
 
-  const { data: c1 } = useReadContract({
-    ...swapperTestnet,
+  const { data: c1, refetch } = useReadContract({
+    ...swapperContract,
     functionName: "getAvailableTokens",
   });
 
@@ -106,14 +102,11 @@ const NFTSwapDapp = () => {
       setIsApproveConfirmed(false);
 
       const approveHash = await sendTx({
-        to: contractBTestnet.address,
+        to: contractB.address,
         data: encodeFunctionData({
-          abi: contractBTestnet.abi,
+          abi: contractB.abi,
           functionName: "approve",
-          args: [
-            swapperTestnet.address,
-            parseUnits(selectedMyNFT!.id.toString(), 9),
-          ],
+          args: [swapperContract.address, selectedMyNFT!.id],
         }),
       });
 
@@ -127,14 +120,11 @@ const NFTSwapDapp = () => {
       setIsSwapConfirmed(false);
 
       const swapHash = await sendTx({
-        to: swapperTestnet.address,
+        to: swapperContract.address,
         data: encodeFunctionData({
-          abi: swapperTestnet.abi,
+          abi: swapperContract.abi,
           functionName: "swap",
-          args: [
-            parseUnits(selectedPeerNFT!.id.toString(), 9),
-            parseUnits(selectedMyNFT!.id.toString(), 9),
-          ],
+          args: [selectedPeerNFT!.id, selectedMyNFT!.id],
         }),
       });
 
@@ -161,6 +151,7 @@ const NFTSwapDapp = () => {
       setSelectedMyNFT(null);
       setSelectedPeerNFT(null);
       setView("gallery");
+      refetch();
     }
   }, [isSwapConfirmed]);
 
@@ -389,8 +380,8 @@ const TokenUriImage = ({ id, og }: { id: bigint; og: boolean }) => {
     error: e1,
     isLoading: isLoading1,
   } = useReadContract({
-    address: og ? contractATestnet.address : contractBTestnet.address,
-    abi: og ? contractATestnet.abi : contractBTestnet.abi,
+    address: og ? contractA.address : contractB.address,
+    abi: og ? contractA.abi : contractB.abi,
     functionName: "tokenURI" as const,
     args: [id],
   });
@@ -453,8 +444,8 @@ const TokenUriName = ({ id, og }: { id: bigint; og: boolean }) => {
     error: e1,
     isLoading: isLoading1,
   } = useReadContract({
-    address: og ? contractATestnet.address : contractBTestnet.address,
-    abi: og ? contractATestnet.abi : contractBTestnet.abi,
+    address: og ? contractA.address : contractB.address,
+    abi: og ? contractA.abi : contractB.abi,
     functionName: "tokenURI",
     args: [id],
   });

@@ -33,6 +33,6 @@ export const contractATestnet = {
 } as const;
 
 export const contractBTestnet = {
-  address: "0x3F7521E8eD780627eD3DEa5E7e70492161F3B741 ",
+  address: "0x3F7521E8eD780627eD3DEa5E7e70492161F3B741",
   abi: contractBTestnetABI,
 } as const;
